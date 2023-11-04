@@ -226,37 +226,25 @@ body .fw7 {
 }
 
 .dark-mode-toggle {
-  border-radius: 50%;
-  width: 15px;
-  height: 15px;
-  margin-left: 7px;
-  background: rgba(4, 34, 87, 0.06);
+  width: 2rem;
+  height: 2rem;
   -webkit-transition: all 0.3s ease 0s;
   -o-transition: all 0.3s ease 0s;
   transition: all 0.3s ease 0s;
+  margin-top: 0.125rem;
 }
 
 .dark-mode-toggle:hover {
-  -webkit-box-shadow: var(--ic-bh);
-          box-shadow: var(--ic-bh);
+  -webkit-filter: var(--ic-bh);
+          filter: var(--ic-bh);
 }
 
 .dark-mode-toggle::before {
   content: var(--clr-theme);
   font-size: var(--fs-theme);
-  left: var(--left-theme);
-  top: var(--top-theme);
   display: block;
   color: var(--text);
-  position: absolute;
   z-index: 5;
-  margin-left: -15px;
-}
-
-.btns__theme {
-  position: relative;
-  width: 1.875rem;
-  height: 1.875rem;
 }
 
 :root {
@@ -264,7 +252,7 @@ body .fw7 {
   --clr-dark: #00332a;
   --clr-a: #042257;
   --clr-a-hv: #BBC4DA;
-  --ic-bh: 0px 0px 40px rgb(4, 34, 87);
+  --ic-bh: drop-shadow(0px 0px 8px rgba(50, 98, 185));
   --clr-a-vosm: #042257;
   --line: linear-gradient(270deg, #E93D72 -98.82%, #3262B9 128.4%);
   --border-a-vosm: #042257;
@@ -284,8 +272,6 @@ body .fw7 {
   --clr-btn: #fff;
   --menu: #fff;
   --fs-theme: 20px;
-  --top-theme: 6px;
-  --left-theme: 67%;
   --clr-ic: #042257;
   --clr-theme: "";
   --clr-ic-background: rgba(210, 216, 229, 0.50);
@@ -313,7 +299,7 @@ body .fw7 {
   --section-background: #192238;
   --menu: #042257;
   --section-background-two: #303D5B;
-  --ic-bh: 0px 0px 40px #ffffff;
+  --ic-bh: drop-shadow(0px 0px 8px rgb(255, 255, 255));
   --line: #979797;
   --fon: url(../img/fon-two.png);
   --img-sit: url(../img/sit-two.png);
@@ -329,8 +315,6 @@ body .fw7 {
   --clr-light: #fdffc4;
   --cart-bh: 0 2px 25px rgb(187, 186, 189);
   --crl-y: #ABD243;
-  --top-theme: 0px;
-  --left-theme: 50%;
   --clr-dark: #192238;
   --fs-theme: 32px;
   --clr-a: #fff;
@@ -567,7 +551,6 @@ a {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
-  width: 15rem;
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
@@ -595,6 +578,7 @@ a {
   position: absolute;
   width: 240px;
   background: #FFF;
+  margin-left: -74px;
   padding: 0.625rem;
   top: 74px;
 }
@@ -607,6 +591,9 @@ a {
       -ms-flex-align: center;
           align-items: center;
   gap: 0.9375rem;
+  width: 11.25rem;
+  border-radius: 0.625rem;
+  white-space: nowrap;
   padding: 0.625rem;
   border: 0.5px solid var(--text-color, #042257);
 }
@@ -680,6 +667,8 @@ a {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  padding: 3px;
+  margin-top: -0.125rem;
 }
 
 .arrow__link-sp {
@@ -821,6 +810,21 @@ a {
   color: #042257;
 }
 
+.spolllers__img {
+  border-radius: 50%;
+}
+
+.fas {
+  -webkit-transition: all 0.3s ease 0s;
+  -o-transition: all 0.3s ease 0s;
+  transition: all 0.3s ease 0s;
+}
+
+.fas:hover {
+  -webkit-filter: drop-shadow(0px 0px 8px rgb(50, 98, 185));
+          filter: drop-shadow(0px 0px 8px rgb(50, 98, 185));
+}
+
 .header__project-btn {
   font-size: 18px;
   padding: 15px 25px;
@@ -828,7 +832,15 @@ a {
   border-radius: 10px;
   position: relative;
   z-index: 1;
+  -webkit-transition: all 0.3s ease 0s;
+  -o-transition: all 0.3s ease 0s;
+  transition: all 0.3s ease 0s;
   border: 0.5px solid var(--text-color, #042257);
+}
+
+.header__project-btn:hover {
+  -webkit-box-shadow: 0 2px 25px rgb(50, 98, 185);
+          box-shadow: 0 2px 25px rgb(50, 98, 185);
 }
 
 .menutwo__icon {
@@ -1783,8 +1795,8 @@ y {
 }
 
 .btn__language:hover {
-  -webkit-box-shadow: var(--ic-bh);
-          box-shadow: var(--ic-bh);
+  -webkit-filter: var(--ic-bh);
+          filter: var(--ic-bh);
 }
 
 .vosm-we {
@@ -2475,8 +2487,22 @@ y {
   }
 }
 
+.project__wrapper {
+  padding-top: 25px;
+  padding-bottom: 25px;
+}
+
 .project__block {
   max-width: 23.5625rem;
+  border-radius: 10px 10px 10px 10px;
+  -webkit-transition: all 0.3s ease 0s;
+  -o-transition: all 0.3s ease 0s;
+  transition: all 0.3s ease 0s;
+}
+
+.project__block:hover {
+  -webkit-box-shadow: var(--cart-bh);
+          box-shadow: var(--cart-bh);
 }
 
 .project__block-pp {
@@ -3646,10 +3672,6 @@ button.swiper-pagination-bullet {
 
   .spollers__item {
     width: auto;
-  }
-
-  .spollers__body {
-    margin-left: -76px;
   }
 
   .header__logo-body {
