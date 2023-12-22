@@ -1,5 +1,6 @@
 (() => {
     "use strict";
+    const flsModules = {};
     function isWebp() {
         function testWebP(callback) {
             let webP = new Image;
@@ -83,9 +84,6 @@
         if (target.hidden) return _slideDown(target, duration); else return _slideUp(target, duration);
     };
     let bodyLockStatus = true;
-    let bodyLockToggle = (delay = 500) => {
-        if (document.documentElement.classList.contains("lock")) bodyUnlock(delay); else bodyLock(delay);
-    };
     let bodyUnlock = (delay = 500) => {
         let body = document.querySelector("body");
         if (bodyLockStatus) {
@@ -200,19 +198,10 @@
             }));
         }
     }
-    function menuInit() {
-        if (document.querySelector(".icon-menutwo")) document.addEventListener("click", (function(e) {
-            if (bodyLockStatus && e.target.closest(".icon-menutwo")) {
-                bodyLockToggle();
-                document.documentElement.classList.toggle("menu-open");
-            }
-        }));
-        if (document.querySelector(".icon-menu")) document.addEventListener("click", (function(e) {
-            if (bodyLockStatus && e.target.closest(".icon-menu")) {
-                bodyLockToggle();
-                document.documentElement.classList.toggle("menu-open");
-            }
-        }));
+    function FLS(message) {
+        setTimeout((() => {
+            if (window.FLS) console.log(message);
+        }), 0);
     }
     function uniqArray(array) {
         return array.filter((function(item, index, self) {
@@ -257,6 +246,253 @@
             }
         }
     }
+    class Popup {
+        constructor(options) {
+            let config = {
+                logging: true,
+                init: true,
+                attributeOpenButton: "data-popup",
+                attributeCloseButton: "data-close",
+                fixElementSelector: "[data-lp]",
+                youtubeAttribute: "data-popup-youtube",
+                youtubePlaceAttribute: "data-popup-youtube-place",
+                setAutoplayYoutube: true,
+                classes: {
+                    popup: "popup",
+                    popup: "popuptwo",
+                    popup: "popupfree",
+                    popupContent: "popup__content",
+                    popupActive: "popup_show",
+                    bodyActive: "popup-show"
+                },
+                focusCatch: true,
+                closeEsc: true,
+                bodyLock: true,
+                hashSettings: {
+                    location: true,
+                    goHash: true
+                },
+                on: {
+                    beforeOpen: function() {},
+                    afterOpen: function() {},
+                    beforeClose: function() {},
+                    afterClose: function() {}
+                }
+            };
+            this.youTubeCode;
+            this.isOpen = false;
+            this.targetOpen = {
+                selector: false,
+                element: false
+            };
+            this.previousOpen = {
+                selector: false,
+                element: false
+            };
+            this.lastClosed = {
+                selector: false,
+                element: false
+            };
+            this._dataValue = false;
+            this.hash = false;
+            this._reopen = false;
+            this._selectorOpen = false;
+            this.lastFocusEl = false;
+            this._focusEl = [ "a[href]", 'input:not([disabled]):not([type="hidden"]):not([aria-hidden])', "button:not([disabled]):not([aria-hidden])", "select:not([disabled]):not([aria-hidden])", "textarea:not([disabled]):not([aria-hidden])", "area[href]", "iframe", "object", "embed", "[contenteditable]", '[tabindex]:not([tabindex^="-"])' ];
+            this.options = {
+                ...config,
+                ...options,
+                classes: {
+                    ...config.classes,
+                    ...options?.classes
+                },
+                hashSettings: {
+                    ...config.hashSettings,
+                    ...options?.hashSettings
+                },
+                on: {
+                    ...config.on,
+                    ...options?.on
+                }
+            };
+            this.bodyLock = false;
+            this.options.init ? this.initPopups() : null;
+        }
+        initPopups() {
+            this.popupLogging(`Проснулся`);
+            this.eventsPopup();
+        }
+        eventsPopup() {
+            document.addEventListener("click", function(e) {
+                const buttonOpen = e.target.closest(`[${this.options.attributeOpenButton}]`);
+                if (buttonOpen) {
+                    e.preventDefault();
+                    this._dataValue = buttonOpen.getAttribute(this.options.attributeOpenButton) ? buttonOpen.getAttribute(this.options.attributeOpenButton) : "error";
+                    this.youTubeCode = buttonOpen.getAttribute(this.options.youtubeAttribute) ? buttonOpen.getAttribute(this.options.youtubeAttribute) : null;
+                    if ("error" !== this._dataValue) {
+                        if (!this.isOpen) this.lastFocusEl = buttonOpen;
+                        this.targetOpen.selector = `${this._dataValue}`;
+                        this._selectorOpen = true;
+                        this.open();
+                        return;
+                    } else this.popupLogging(`Ой ой, не заполнен атрибут у ${buttonOpen.classList}`);
+                    return;
+                }
+                const buttonClose = e.target.closest(`[${this.options.attributeCloseButton}]`);
+                if (buttonClose || !e.target.closest(`.${this.options.classes.popupContent}`) && this.isOpen) {
+                    e.preventDefault();
+                    this.close();
+                    return;
+                }
+            }.bind(this));
+            document.addEventListener("keydown", function(e) {
+                if (this.options.closeEsc && 27 == e.which && "Escape" === e.code && this.isOpen) {
+                    e.preventDefault();
+                    this.close();
+                    return;
+                }
+                if (this.options.focusCatch && 9 == e.which && this.isOpen) {
+                    this._focusCatch(e);
+                    return;
+                }
+            }.bind(this));
+            if (this.options.hashSettings.goHash) {
+                window.addEventListener("hashchange", function() {
+                    if (window.location.hash) this._openToHash(); else this.close(this.targetOpen.selector);
+                }.bind(this));
+                window.addEventListener("load", function() {
+                    if (window.location.hash) this._openToHash();
+                }.bind(this));
+            }
+        }
+        open(selectorValue) {
+            if (bodyLockStatus) {
+                this.bodyLock = document.documentElement.classList.contains("lock") && !this.isOpen ? true : false;
+                if (selectorValue && "string" === typeof selectorValue && "" !== selectorValue.trim()) {
+                    this.targetOpen.selector = selectorValue;
+                    this._selectorOpen = true;
+                }
+                if (this.isOpen) {
+                    this._reopen = true;
+                    this.close();
+                }
+                if (!this._selectorOpen) this.targetOpen.selector = this.lastClosed.selector;
+                if (!this._reopen) this.previousActiveElement = document.activeElement;
+                this.targetOpen.element = document.querySelector(this.targetOpen.selector);
+                if (this.targetOpen.element) {
+                    if (this.youTubeCode) {
+                        const codeVideo = this.youTubeCode;
+                        const urlVideo = `https://www.youtube.com/embed/${codeVideo}?rel=0&showinfo=0&autoplay=1`;
+                        const iframe = document.createElement("iframe");
+                        iframe.setAttribute("allowfullscreen", "");
+                        const autoplay = this.options.setAutoplayYoutube ? "autoplay;" : "";
+                        iframe.setAttribute("allow", `${autoplay}; encrypted-media`);
+                        iframe.setAttribute("src", urlVideo);
+                        if (!this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`)) {
+                            this.targetOpen.element.querySelector(".popup__text").setAttribute(`${this.options.youtubePlaceAttribute}`, "");
+                        }
+                        this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`).appendChild(iframe);
+                    }
+                    if (this.options.hashSettings.location) {
+                        this._getHash();
+                        this._setHash();
+                    }
+                    this.options.on.beforeOpen(this);
+                    document.dispatchEvent(new CustomEvent("beforePopupOpen", {
+                        detail: {
+                            popup: this
+                        }
+                    }));
+                    this.targetOpen.element.classList.add(this.options.classes.popupActive);
+                    document.documentElement.classList.add(this.options.classes.bodyActive);
+                    if (!this._reopen) !this.bodyLock ? bodyLock() : null; else this._reopen = false;
+                    this.targetOpen.element.setAttribute("aria-hidden", "false");
+                    this.previousOpen.selector = this.targetOpen.selector;
+                    this.previousOpen.element = this.targetOpen.element;
+                    this._selectorOpen = false;
+                    this.isOpen = true;
+                    setTimeout((() => {
+                        this._focusTrap();
+                    }), 50);
+                    this.options.on.afterOpen(this);
+                    document.dispatchEvent(new CustomEvent("afterPopupOpen", {
+                        detail: {
+                            popup: this
+                        }
+                    }));
+                    this.popupLogging(`Открыл попап`);
+                } else this.popupLogging(`Ой ой, такого попапа нет.Проверьте корректность ввода. `);
+            }
+        }
+        close(selectorValue) {
+            if (selectorValue && "string" === typeof selectorValue && "" !== selectorValue.trim()) this.previousOpen.selector = selectorValue;
+            if (!this.isOpen || !bodyLockStatus) return;
+            this.options.on.beforeClose(this);
+            document.dispatchEvent(new CustomEvent("beforePopupClose", {
+                detail: {
+                    popup: this
+                }
+            }));
+            if (this.youTubeCode) if (this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`)) this.targetOpen.element.querySelector(`[${this.options.youtubePlaceAttribute}]`).innerHTML = "";
+            this.previousOpen.element.classList.remove(this.options.classes.popupActive);
+            this.previousOpen.element.setAttribute("aria-hidden", "true");
+            if (!this._reopen) {
+                document.documentElement.classList.remove(this.options.classes.bodyActive);
+                !this.bodyLock ? bodyUnlock() : null;
+                this.isOpen = false;
+            }
+            this._removeHash();
+            if (this._selectorOpen) {
+                this.lastClosed.selector = this.previousOpen.selector;
+                this.lastClosed.element = this.previousOpen.element;
+            }
+            this.options.on.afterClose(this);
+            document.dispatchEvent(new CustomEvent("afterPopupClose", {
+                detail: {
+                    popup: this
+                }
+            }));
+            setTimeout((() => {
+                this._focusTrap();
+            }), 50);
+            this.popupLogging(`Закрыл попап`);
+        }
+        _getHash() {
+            if (this.options.hashSettings.location) this.hash = this.targetOpen.selector.includes("#") ? this.targetOpen.selector : this.targetOpen.selector.replace(".", "#");
+        }
+        _openToHash() {
+            let classInHash = document.querySelector(`.${window.location.hash.replace("#", "")}`) ? `.${window.location.hash.replace("#", "")}` : document.querySelector(`${window.location.hash}`) ? `${window.location.hash}` : null;
+            const buttons = document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash}"]`) ? document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash}"]`) : document.querySelector(`[${this.options.attributeOpenButton} = "${classInHash.replace(".", "#")}"]`);
+            if (buttons && classInHash) this.open(classInHash);
+        }
+        _setHash() {
+            history.pushState("", "", this.hash);
+        }
+        _removeHash() {
+            history.pushState("", "", window.location.href.split("#")[0]);
+        }
+        _focusCatch(e) {
+            const focusable = this.targetOpen.element.querySelectorAll(this._focusEl);
+            const focusArray = Array.prototype.slice.call(focusable);
+            const focusedIndex = focusArray.indexOf(document.activeElement);
+            if (e.shiftKey && 0 === focusedIndex) {
+                focusArray[focusArray.length - 1].focus();
+                e.preventDefault();
+            }
+            if (!e.shiftKey && focusedIndex === focusArray.length - 1) {
+                focusArray[0].focus();
+                e.preventDefault();
+            }
+        }
+        _focusTrap() {
+            const focusable = this.previousOpen.element.querySelectorAll(this._focusEl);
+            if (!this.isOpen && this.lastFocusEl) this.lastFocusEl.focus(); else focusable[0].focus();
+        }
+        popupLogging(message) {
+            this.options.logging ? FLS(`[Попапос]: ${message}`) : null;
+        }
+    }
+    flsModules.popup = new Popup({});
     function ssr_window_esm_isObject(obj) {
         return null !== obj && "object" === typeof obj && "constructor" in obj && obj.constructor === Object;
     }
@@ -3352,6 +3588,394 @@
             destroy
         });
     }
+    function classes_to_selector_classesToSelector(classes = "") {
+        return `.${classes.trim().replace(/([\.:!\/])/g, "\\$1").replace(/ /g, ".")}`;
+    }
+    function Pagination({swiper, extendParams, on, emit}) {
+        const pfx = "swiper-pagination";
+        extendParams({
+            pagination: {
+                el: null,
+                bulletElement: "span",
+                clickable: false,
+                hideOnClick: false,
+                renderBullet: null,
+                renderProgressbar: null,
+                renderFraction: null,
+                renderCustom: null,
+                progressbarOpposite: false,
+                type: "bullets",
+                dynamicBullets: false,
+                dynamicMainBullets: 1,
+                formatFractionCurrent: number => number,
+                formatFractionTotal: number => number,
+                bulletClass: `${pfx}-bullet`,
+                bulletActiveClass: `${pfx}-bullet-active`,
+                modifierClass: `${pfx}-`,
+                currentClass: `${pfx}-current`,
+                totalClass: `${pfx}-total`,
+                hiddenClass: `${pfx}-hidden`,
+                progressbarFillClass: `${pfx}-progressbar-fill`,
+                progressbarOppositeClass: `${pfx}-progressbar-opposite`,
+                clickableClass: `${pfx}-clickable`,
+                lockClass: `${pfx}-lock`,
+                horizontalClass: `${pfx}-horizontal`,
+                verticalClass: `${pfx}-vertical`,
+                paginationDisabledClass: `${pfx}-disabled`
+            }
+        });
+        swiper.pagination = {
+            el: null,
+            $el: null,
+            bullets: []
+        };
+        let bulletSize;
+        let dynamicBulletIndex = 0;
+        function isPaginationDisabled() {
+            return !swiper.params.pagination.el || !swiper.pagination.el || !swiper.pagination.$el || 0 === swiper.pagination.$el.length;
+        }
+        function setSideBullets($bulletEl, position) {
+            const {bulletActiveClass} = swiper.params.pagination;
+            $bulletEl[position]().addClass(`${bulletActiveClass}-${position}`)[position]().addClass(`${bulletActiveClass}-${position}-${position}`);
+        }
+        function update() {
+            const rtl = swiper.rtl;
+            const params = swiper.params.pagination;
+            if (isPaginationDisabled()) return;
+            const slidesLength = swiper.virtual && swiper.params.virtual.enabled ? swiper.virtual.slides.length : swiper.slides.length;
+            const $el = swiper.pagination.$el;
+            let current;
+            const total = swiper.params.loop ? Math.ceil((slidesLength - 2 * swiper.loopedSlides) / swiper.params.slidesPerGroup) : swiper.snapGrid.length;
+            if (swiper.params.loop) {
+                current = Math.ceil((swiper.activeIndex - swiper.loopedSlides) / swiper.params.slidesPerGroup);
+                if (current > slidesLength - 1 - 2 * swiper.loopedSlides) current -= slidesLength - 2 * swiper.loopedSlides;
+                if (current > total - 1) current -= total;
+                if (current < 0 && "bullets" !== swiper.params.paginationType) current = total + current;
+            } else if ("undefined" !== typeof swiper.snapIndex) current = swiper.snapIndex; else current = swiper.activeIndex || 0;
+            if ("bullets" === params.type && swiper.pagination.bullets && swiper.pagination.bullets.length > 0) {
+                const bullets = swiper.pagination.bullets;
+                let firstIndex;
+                let lastIndex;
+                let midIndex;
+                if (params.dynamicBullets) {
+                    bulletSize = bullets.eq(0)[swiper.isHorizontal() ? "outerWidth" : "outerHeight"](true);
+                    $el.css(swiper.isHorizontal() ? "width" : "height", `${bulletSize * (params.dynamicMainBullets + 4)}px`);
+                    if (params.dynamicMainBullets > 1 && void 0 !== swiper.previousIndex) {
+                        dynamicBulletIndex += current - (swiper.previousIndex - swiper.loopedSlides || 0);
+                        if (dynamicBulletIndex > params.dynamicMainBullets - 1) dynamicBulletIndex = params.dynamicMainBullets - 1; else if (dynamicBulletIndex < 0) dynamicBulletIndex = 0;
+                    }
+                    firstIndex = Math.max(current - dynamicBulletIndex, 0);
+                    lastIndex = firstIndex + (Math.min(bullets.length, params.dynamicMainBullets) - 1);
+                    midIndex = (lastIndex + firstIndex) / 2;
+                }
+                bullets.removeClass([ "", "-next", "-next-next", "-prev", "-prev-prev", "-main" ].map((suffix => `${params.bulletActiveClass}${suffix}`)).join(" "));
+                if ($el.length > 1) bullets.each((bullet => {
+                    const $bullet = dom(bullet);
+                    const bulletIndex = $bullet.index();
+                    if (bulletIndex === current) $bullet.addClass(params.bulletActiveClass);
+                    if (params.dynamicBullets) {
+                        if (bulletIndex >= firstIndex && bulletIndex <= lastIndex) $bullet.addClass(`${params.bulletActiveClass}-main`);
+                        if (bulletIndex === firstIndex) setSideBullets($bullet, "prev");
+                        if (bulletIndex === lastIndex) setSideBullets($bullet, "next");
+                    }
+                })); else {
+                    const $bullet = bullets.eq(current);
+                    const bulletIndex = $bullet.index();
+                    $bullet.addClass(params.bulletActiveClass);
+                    if (params.dynamicBullets) {
+                        const $firstDisplayedBullet = bullets.eq(firstIndex);
+                        const $lastDisplayedBullet = bullets.eq(lastIndex);
+                        for (let i = firstIndex; i <= lastIndex; i += 1) bullets.eq(i).addClass(`${params.bulletActiveClass}-main`);
+                        if (swiper.params.loop) if (bulletIndex >= bullets.length) {
+                            for (let i = params.dynamicMainBullets; i >= 0; i -= 1) bullets.eq(bullets.length - i).addClass(`${params.bulletActiveClass}-main`);
+                            bullets.eq(bullets.length - params.dynamicMainBullets - 1).addClass(`${params.bulletActiveClass}-prev`);
+                        } else {
+                            setSideBullets($firstDisplayedBullet, "prev");
+                            setSideBullets($lastDisplayedBullet, "next");
+                        } else {
+                            setSideBullets($firstDisplayedBullet, "prev");
+                            setSideBullets($lastDisplayedBullet, "next");
+                        }
+                    }
+                }
+                if (params.dynamicBullets) {
+                    const dynamicBulletsLength = Math.min(bullets.length, params.dynamicMainBullets + 4);
+                    const bulletsOffset = (bulletSize * dynamicBulletsLength - bulletSize) / 2 - midIndex * bulletSize;
+                    const offsetProp = rtl ? "right" : "left";
+                    bullets.css(swiper.isHorizontal() ? offsetProp : "top", `${bulletsOffset}px`);
+                }
+            }
+            if ("fraction" === params.type) {
+                $el.find(classes_to_selector_classesToSelector(params.currentClass)).text(params.formatFractionCurrent(current + 1));
+                $el.find(classes_to_selector_classesToSelector(params.totalClass)).text(params.formatFractionTotal(total));
+            }
+            if ("progressbar" === params.type) {
+                let progressbarDirection;
+                if (params.progressbarOpposite) progressbarDirection = swiper.isHorizontal() ? "vertical" : "horizontal"; else progressbarDirection = swiper.isHorizontal() ? "horizontal" : "vertical";
+                const scale = (current + 1) / total;
+                let scaleX = 1;
+                let scaleY = 1;
+                if ("horizontal" === progressbarDirection) scaleX = scale; else scaleY = scale;
+                $el.find(classes_to_selector_classesToSelector(params.progressbarFillClass)).transform(`translate3d(0,0,0) scaleX(${scaleX}) scaleY(${scaleY})`).transition(swiper.params.speed);
+            }
+            if ("custom" === params.type && params.renderCustom) {
+                $el.html(params.renderCustom(swiper, current + 1, total));
+                emit("paginationRender", $el[0]);
+            } else emit("paginationUpdate", $el[0]);
+            if (swiper.params.watchOverflow && swiper.enabled) $el[swiper.isLocked ? "addClass" : "removeClass"](params.lockClass);
+        }
+        function render() {
+            const params = swiper.params.pagination;
+            if (isPaginationDisabled()) return;
+            const slidesLength = swiper.virtual && swiper.params.virtual.enabled ? swiper.virtual.slides.length : swiper.slides.length;
+            const $el = swiper.pagination.$el;
+            let paginationHTML = "";
+            if ("bullets" === params.type) {
+                let numberOfBullets = swiper.params.loop ? Math.ceil((slidesLength - 2 * swiper.loopedSlides) / swiper.params.slidesPerGroup) : swiper.snapGrid.length;
+                if (swiper.params.freeMode && swiper.params.freeMode.enabled && !swiper.params.loop && numberOfBullets > slidesLength) numberOfBullets = slidesLength;
+                for (let i = 0; i < numberOfBullets; i += 1) if (params.renderBullet) paginationHTML += params.renderBullet.call(swiper, i, params.bulletClass); else paginationHTML += `<${params.bulletElement} class="${params.bulletClass}"></${params.bulletElement}>`;
+                $el.html(paginationHTML);
+                swiper.pagination.bullets = $el.find(classes_to_selector_classesToSelector(params.bulletClass));
+            }
+            if ("fraction" === params.type) {
+                if (params.renderFraction) paginationHTML = params.renderFraction.call(swiper, params.currentClass, params.totalClass); else paginationHTML = `<span class="${params.currentClass}"></span>` + " / " + `<span class="${params.totalClass}"></span>`;
+                $el.html(paginationHTML);
+            }
+            if ("progressbar" === params.type) {
+                if (params.renderProgressbar) paginationHTML = params.renderProgressbar.call(swiper, params.progressbarFillClass); else paginationHTML = `<span class="${params.progressbarFillClass}"></span>`;
+                $el.html(paginationHTML);
+            }
+            if ("custom" !== params.type) emit("paginationRender", swiper.pagination.$el[0]);
+        }
+        function init() {
+            swiper.params.pagination = create_element_if_not_defined_createElementIfNotDefined(swiper, swiper.originalParams.pagination, swiper.params.pagination, {
+                el: "swiper-pagination"
+            });
+            const params = swiper.params.pagination;
+            if (!params.el) return;
+            let $el = dom(params.el);
+            if (0 === $el.length) return;
+            if (swiper.params.uniqueNavElements && "string" === typeof params.el && $el.length > 1) {
+                $el = swiper.$el.find(params.el);
+                if ($el.length > 1) $el = $el.filter((el => {
+                    if (dom(el).parents(".swiper")[0] !== swiper.el) return false;
+                    return true;
+                }));
+            }
+            if ("bullets" === params.type && params.clickable) $el.addClass(params.clickableClass);
+            $el.addClass(params.modifierClass + params.type);
+            $el.addClass(swiper.isHorizontal() ? params.horizontalClass : params.verticalClass);
+            if ("bullets" === params.type && params.dynamicBullets) {
+                $el.addClass(`${params.modifierClass}${params.type}-dynamic`);
+                dynamicBulletIndex = 0;
+                if (params.dynamicMainBullets < 1) params.dynamicMainBullets = 1;
+            }
+            if ("progressbar" === params.type && params.progressbarOpposite) $el.addClass(params.progressbarOppositeClass);
+            if (params.clickable) $el.on("click", classes_to_selector_classesToSelector(params.bulletClass), (function onClick(e) {
+                e.preventDefault();
+                let index = dom(this).index() * swiper.params.slidesPerGroup;
+                if (swiper.params.loop) index += swiper.loopedSlides;
+                swiper.slideTo(index);
+            }));
+            Object.assign(swiper.pagination, {
+                $el,
+                el: $el[0]
+            });
+            if (!swiper.enabled) $el.addClass(params.lockClass);
+        }
+        function destroy() {
+            const params = swiper.params.pagination;
+            if (isPaginationDisabled()) return;
+            const $el = swiper.pagination.$el;
+            $el.removeClass(params.hiddenClass);
+            $el.removeClass(params.modifierClass + params.type);
+            $el.removeClass(swiper.isHorizontal() ? params.horizontalClass : params.verticalClass);
+            if (swiper.pagination.bullets && swiper.pagination.bullets.removeClass) swiper.pagination.bullets.removeClass(params.bulletActiveClass);
+            if (params.clickable) $el.off("click", classes_to_selector_classesToSelector(params.bulletClass));
+        }
+        on("init", (() => {
+            if (false === swiper.params.pagination.enabled) disable(); else {
+                init();
+                render();
+                update();
+            }
+        }));
+        on("activeIndexChange", (() => {
+            if (swiper.params.loop) update(); else if ("undefined" === typeof swiper.snapIndex) update();
+        }));
+        on("snapIndexChange", (() => {
+            if (!swiper.params.loop) update();
+        }));
+        on("slidesLengthChange", (() => {
+            if (swiper.params.loop) {
+                render();
+                update();
+            }
+        }));
+        on("snapGridLengthChange", (() => {
+            if (!swiper.params.loop) {
+                render();
+                update();
+            }
+        }));
+        on("destroy", (() => {
+            destroy();
+        }));
+        on("enable disable", (() => {
+            const {$el} = swiper.pagination;
+            if ($el) $el[swiper.enabled ? "removeClass" : "addClass"](swiper.params.pagination.lockClass);
+        }));
+        on("lock unlock", (() => {
+            update();
+        }));
+        on("click", ((_s, e) => {
+            const targetEl = e.target;
+            const {$el} = swiper.pagination;
+            if (swiper.params.pagination.el && swiper.params.pagination.hideOnClick && $el && $el.length > 0 && !dom(targetEl).hasClass(swiper.params.pagination.bulletClass)) {
+                if (swiper.navigation && (swiper.navigation.nextEl && targetEl === swiper.navigation.nextEl || swiper.navigation.prevEl && targetEl === swiper.navigation.prevEl)) return;
+                const isHidden = $el.hasClass(swiper.params.pagination.hiddenClass);
+                if (true === isHidden) emit("paginationShow"); else emit("paginationHide");
+                $el.toggleClass(swiper.params.pagination.hiddenClass);
+            }
+        }));
+        const enable = () => {
+            swiper.$el.removeClass(swiper.params.pagination.paginationDisabledClass);
+            if (swiper.pagination.$el) swiper.pagination.$el.removeClass(swiper.params.pagination.paginationDisabledClass);
+            init();
+            render();
+            update();
+        };
+        const disable = () => {
+            swiper.$el.addClass(swiper.params.pagination.paginationDisabledClass);
+            if (swiper.pagination.$el) swiper.pagination.$el.addClass(swiper.params.pagination.paginationDisabledClass);
+            destroy();
+        };
+        Object.assign(swiper.pagination, {
+            enable,
+            disable,
+            render,
+            update,
+            init,
+            destroy
+        });
+    }
+    function effect_init_effectInit(params) {
+        const {effect, swiper, on, setTranslate, setTransition, overwriteParams, perspective, recreateShadows, getEffectParams} = params;
+        on("beforeInit", (() => {
+            if (swiper.params.effect !== effect) return;
+            swiper.classNames.push(`${swiper.params.containerModifierClass}${effect}`);
+            if (perspective && perspective()) swiper.classNames.push(`${swiper.params.containerModifierClass}3d`);
+            const overwriteParamsResult = overwriteParams ? overwriteParams() : {};
+            Object.assign(swiper.params, overwriteParamsResult);
+            Object.assign(swiper.originalParams, overwriteParamsResult);
+        }));
+        on("setTranslate", (() => {
+            if (swiper.params.effect !== effect) return;
+            setTranslate();
+        }));
+        on("setTransition", ((_s, duration) => {
+            if (swiper.params.effect !== effect) return;
+            setTransition(duration);
+        }));
+        on("transitionEnd", (() => {
+            if (swiper.params.effect !== effect) return;
+            if (recreateShadows) {
+                if (!getEffectParams || !getEffectParams().slideShadows) return;
+                swiper.slides.each((slideEl => {
+                    const $slideEl = swiper.$(slideEl);
+                    $slideEl.find(".swiper-slide-shadow-top, .swiper-slide-shadow-right, .swiper-slide-shadow-bottom, .swiper-slide-shadow-left").remove();
+                }));
+                recreateShadows();
+            }
+        }));
+        let requireUpdateOnVirtual;
+        on("virtualUpdate", (() => {
+            if (swiper.params.effect !== effect) return;
+            if (!swiper.slides.length) requireUpdateOnVirtual = true;
+            requestAnimationFrame((() => {
+                if (requireUpdateOnVirtual && swiper.slides && swiper.slides.length) {
+                    setTranslate();
+                    requireUpdateOnVirtual = false;
+                }
+            }));
+        }));
+    }
+    function effect_target_effectTarget(effectParams, $slideEl) {
+        if (effectParams.transformEl) return $slideEl.find(effectParams.transformEl).css({
+            "backface-visibility": "hidden",
+            "-webkit-backface-visibility": "hidden"
+        });
+        return $slideEl;
+    }
+    function effect_virtual_transition_end_effectVirtualTransitionEnd({swiper, duration, transformEl, allSlides}) {
+        const {slides, activeIndex, $wrapperEl} = swiper;
+        if (swiper.params.virtualTranslate && 0 !== duration) {
+            let eventTriggered = false;
+            let $transitionEndTarget;
+            if (allSlides) $transitionEndTarget = transformEl ? slides.find(transformEl) : slides; else $transitionEndTarget = transformEl ? slides.eq(activeIndex).find(transformEl) : slides.eq(activeIndex);
+            $transitionEndTarget.transitionEnd((() => {
+                if (eventTriggered) return;
+                if (!swiper || swiper.destroyed) return;
+                eventTriggered = true;
+                swiper.animating = false;
+                const triggerEvents = [ "webkitTransitionEnd", "transitionend" ];
+                for (let i = 0; i < triggerEvents.length; i += 1) $wrapperEl.trigger(triggerEvents[i]);
+            }));
+        }
+    }
+    function EffectFade({swiper, extendParams, on}) {
+        extendParams({
+            fadeEffect: {
+                crossFade: false,
+                transformEl: null
+            }
+        });
+        const setTranslate = () => {
+            const {slides} = swiper;
+            const params = swiper.params.fadeEffect;
+            for (let i = 0; i < slides.length; i += 1) {
+                const $slideEl = swiper.slides.eq(i);
+                const offset = $slideEl[0].swiperSlideOffset;
+                let tx = -offset;
+                if (!swiper.params.virtualTranslate) tx -= swiper.translate;
+                let ty = 0;
+                if (!swiper.isHorizontal()) {
+                    ty = tx;
+                    tx = 0;
+                }
+                const slideOpacity = swiper.params.fadeEffect.crossFade ? Math.max(1 - Math.abs($slideEl[0].progress), 0) : 1 + Math.min(Math.max($slideEl[0].progress, -1), 0);
+                const $targetEl = effect_target_effectTarget(params, $slideEl);
+                $targetEl.css({
+                    opacity: slideOpacity
+                }).transform(`translate3d(${tx}px, ${ty}px, 0px)`);
+            }
+        };
+        const setTransition = duration => {
+            const {transformEl} = swiper.params.fadeEffect;
+            const $transitionElements = transformEl ? swiper.slides.find(transformEl) : swiper.slides;
+            $transitionElements.transition(duration);
+            effect_virtual_transition_end_effectVirtualTransitionEnd({
+                swiper,
+                duration,
+                transformEl,
+                allSlides: true
+            });
+        };
+        effect_init_effectInit({
+            effect: "fade",
+            swiper,
+            on,
+            setTranslate,
+            setTransition,
+            overwriteParams: () => ({
+                slidesPerView: 1,
+                slidesPerGroup: 1,
+                watchSlidesProgress: true,
+                spaceBetween: 0,
+                virtualTranslate: !swiper.params.cssMode
+            })
+        });
+    }
     function initSliders() {
         if (document.querySelector(".project__slider")) new core(".project__slider", {
             modules: [ Navigation ],
@@ -3419,6 +4043,29 @@
                     spaceBetween: 20
                 }
             },
+            on: {}
+        });
+        if (document.querySelector(".galaryproject__slider")) new core(".galaryproject__slider", {
+            modules: [ Navigation, Pagination, EffectFade ],
+            observer: true,
+            observeParents: true,
+            slidesPerView: 1,
+            autoHeight: true,
+            speed: 700,
+            loop: true,
+            effect: "fade",
+            fadeEffect: {
+                crossFade: true
+            },
+            pagination: {
+                el: ".swiper-pagination--galaryproject",
+                clickable: true
+            },
+            navigation: {
+                prevEl: ".project-button-prev-galaryproject",
+                nextEl: ".project-button-next-galaryproject"
+            },
+            breakpoints: {},
             on: {}
         });
     }
@@ -3523,21 +4170,287 @@
     da.init();
     window["FLS"] = true;
     isWebp();
-    menuInit();
     spollers();
-    let darkMode = localStorage.getItem("darkMode");
-    const darkModeToggle = document.querySelector("#dark-mode-toggle");
-    const enableDarkMode = () => {
-        document.body.classList.add("darkmode");
-        localStorage.setItem("darkMode", "enabled");
-    };
-    const disableDarkMode = () => {
-        document.body.classList.remove("darkmode");
-        localStorage.setItem("darkMode", null);
-    };
-    if ("enabled" === darkMode) enableDarkMode();
-    darkModeToggle.addEventListener("click", (() => {
-        darkMode = localStorage.getItem("darkMode");
-        if ("enabled" !== darkMode) enableDarkMode(); else disableDarkMode();
+    const titleElements = document.querySelectorAll(".have__main-instr--block-title");
+    titleElements.forEach((function(titleElement) {
+        titleElement.addEventListener("keydown", (function(event) {
+            if (this.innerText.length >= 18 && 1 === event.key.length) event.preventDefault();
+        }));
     }));
+    function startLoading(button) {
+        if (button.classList.contains("loading")) return;
+        button.classList.remove("pause", "itog");
+        button.classList.add("loading");
+        const loadingTimeout = setTimeout((function() {
+            button.classList.remove("loading");
+            button.classList.add("itog");
+            button.dataset.isLoading = "false";
+        }), 3e3);
+        button.dataset.loadingTimeout = loadingTimeout;
+        button.dataset.isLoading = "true";
+    }
+    function pauseLoading(button) {
+        button.classList.remove("loading");
+        button.classList.remove("itog");
+        button.classList.add("pause");
+        const loadingTimeout = button.dataset.loadingTimeout;
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+        button.dataset.isLoading = "false";
+    }
+    document.querySelectorAll(".multi-state-button").forEach((function(button) {
+        if ("false" === button.dataset.isLoading) startLoading(button); else pauseLoading(button);
+    }));
+    document.querySelector(".adver__sky-btn").addEventListener("click", (function() {
+        const buttons = document.querySelectorAll(".multi-state-button");
+        buttons.forEach((function(button) {
+            if ("false" === button.dataset.isLoading) startLoading(button); else pauseLoading(button);
+        }));
+    }));
+    document.querySelectorAll(".multi-state-button").forEach((function(button) {
+        button.addEventListener("click", (function(event) {
+            if ("false" === event.currentTarget.dataset.isLoading) startLoading(event.currentTarget); else pauseLoading(event.currentTarget);
+        }));
+    }));
+    const THEME_STORAGE_KEY = "darkMode";
+    const body = document.body;
+    const darkModeToggle = document.querySelector("#dark-mode-toggle");
+    function isDarkModeEnabled() {
+        return "enabled" === localStorage.getItem(THEME_STORAGE_KEY);
+    }
+    function enableDarkMode() {
+        body.classList.add("darkmode");
+        localStorage.setItem(THEME_STORAGE_KEY, "enabled");
+    }
+    function disableDarkMode() {
+        body.classList.remove("darkmode");
+        localStorage.setItem(THEME_STORAGE_KEY, "disabled");
+    }
+    if (isDarkModeEnabled()) enableDarkMode();
+    darkModeToggle.addEventListener("click", (() => {
+        if (isDarkModeEnabled()) disableDarkMode(); else enableDarkMode();
+    }));
+    document.querySelector(".closes").addEventListener("click", (function() {
+        document.querySelector(".outsides").classList.toggle("in");
+        document.querySelector(".closes").classList.toggle("menu-active");
+        this.classList.toggle("is-showing");
+        var secondMenu = document.querySelector(".menu-activea.menu-active");
+        if (secondMenu) {
+            secondMenu.classList.remove("menu-active");
+            document.querySelector(".menu__main-gl").classList.remove("menu-active");
+            document.querySelector(".body-spollers").classList.remove("menu-active");
+            document.querySelector(".spollers__title").classList.remove("menu-active");
+            document.querySelector(".bars").classList.remove("menu-active");
+        }
+    }));
+    document.querySelector(".closest").addEventListener("click", (function() {
+        document.querySelector(".outsides").classList.remove("in");
+        document.querySelector(".closes").classList.remove("menu-active");
+        document.querySelector(".closes").classList.remove("is-showing");
+    }));
+    (function() {
+        var navgl = document.querySelector(".menu-activea");
+        var menugl = document.querySelector(".menu-activea .spollers__title");
+        var maingl = document.querySelector(".menu__main-gl");
+        var h1 = document.querySelector(".spollers__title");
+        var bodyspo = document.querySelector(".body-spollers");
+        var closes = document.querySelector(".closes");
+        var open = false;
+        menugl.addEventListener("click", (function() {
+            var firstMenu = document.querySelector(".closes.is-showing");
+            if (firstMenu) {
+                document.querySelector(".outsides").classList.remove("in");
+                document.querySelector(".closes").classList.remove("menu-active");
+                document.querySelector(".closes").classList.remove("is-showing");
+            }
+            open = !open ? true : false;
+            navgl.classList.toggle("menu-active");
+            maingl.classList.toggle("menu-active");
+            bodyspo.classList.toggle("menu-active");
+            h1.classList.toggle("menu-active");
+            closes.classList.toggle("menu-active");
+            closes.classList.remove("menu-hover");
+            h1.classList.remove("menu-hover");
+            bodyspo.classList.remove("menu-hover");
+            navgl.classList.remove("menu-hover");
+            maingl.classList.remove("menu-hover");
+            console.log(open);
+        }));
+    })();
+    $((function() {
+        var numberOfItems = $(".card-content .card").length;
+        var config = {
+            default: {
+                limitPerPage: 3,
+                paginationSize: 5
+            },
+            smallScreen: {
+                limitPerPage: 1,
+                paginationSize: 5
+            },
+            mediumScreen: {
+                limitPerPage: 2,
+                paginationSize: 5
+            },
+            largeScreen: {
+                limitPerPage: 3,
+                paginationSize: 5
+            }
+        };
+        var currentPage;
+        function updateParams() {
+            var screenWidth = window.innerWidth;
+            var params;
+            if (screenWidth < 768) params = config.smallScreen; else if (screenWidth < 1200) params = config.mediumScreen; else params = config.largeScreen;
+            params.totalPages = Math.ceil(numberOfItems / params.limitPerPage);
+            return params;
+        }
+        function getPageList(totalPages, page, maxLength) {
+            function range(start, end) {
+                return Array.from(Array(end - start + 1), ((_, i) => i + start));
+            }
+            var sideWidth = maxLength < 9 ? 1 : 2;
+            var leftWidth = maxLength - 2 * sideWidth - 3 >> 1;
+            var rightWidth = maxLength - 2 * sideWidth - 3 >> 1;
+            if (totalPages <= maxLength) return range(1, totalPages);
+            if (page <= maxLength - sideWidth - 1 - rightWidth) return range(1, maxLength - sideWidth - 1).concat(0, range(totalPages - sideWidth + 1, totalPages));
+            if (page >= totalPages - sideWidth - 1 - rightWidth) return range(1, sideWidth).concat(0, range(totalPages - sideWidth - 1 - rightWidth - leftWidth, totalPages));
+            return range(1, sideWidth).concat(0, range(page - leftWidth, page + rightWidth), 0, range(totalPages - sideWidth + 1, totalPages));
+        }
+        function showPage(whichPage) {
+            var params = updateParams();
+            if (whichPage < 1 || whichPage > params.totalPages) return false;
+            currentPage = whichPage;
+            var start = (currentPage - 1) * params.limitPerPage;
+            var end = start + params.limitPerPage;
+            $(".card-content .card").hide().slice(start, end).fadeIn("slow");
+            $(".pagination li").slice(1, -1).remove();
+            getPageList(params.totalPages, currentPage, params.paginationSize).forEach((item => {
+                $("<li>").addClass("page-item").addClass(item ? "current-page" : "dots").toggleClass("active", item === currentPage).append($("<a>").addClass("page-link").attr({
+                    href: "javascript:void(0)"
+                }).text(item || "...")).insertBefore(".next-page");
+            }));
+            $(".previous-page").toggleClass("disable", 1 === currentPage);
+            $(".next-page").toggleClass("disable", currentPage === params.totalPages);
+            return true;
+        }
+        $(".pagination").append($("<li>").addClass("page-item previous-page").append($("<a>").addClass("page-link").attr({
+            href: "javascript:void(0)"
+        }).addClass("_icon-arrow")), $("<li>").addClass("page-item next-page").append($("<a>").addClass("page-link").attr({
+            href: "javascript:void(0)"
+        }).addClass("_icon-arrow")));
+        $(".card-content").show();
+        showPage(1);
+        $(window).resize((function() {
+            showPage(currentPage);
+        }));
+        $(document).on("click", ".pagination li.current-page:not(.active)", (function() {
+            return showPage(+$(this).text());
+        }));
+        $(".next-page").on("click", (function() {
+            return showPage(currentPage + 1);
+        }));
+        $(".previous-page").on("click", (function() {
+            return showPage(currentPage - 1);
+        }));
+    }));
+    document.addEventListener("DOMContentLoaded", (function() {
+        var adverSkyBtn = document.querySelector(".adver__sky-btn");
+        var adverMain = document.querySelector(".adver__main");
+        var haveMain = document.querySelector(".have__main");
+        adverSkyBtn.addEventListener("click", (function() {
+            var adverMainDisplayStyle = window.getComputedStyle(adverMain).display;
+            adverMain.style.display = "none" === adverMainDisplayStyle ? "block" : "none";
+            haveMain.style.display = "none" === adverMainDisplayStyle ? "none" : "block";
+        }));
+    }));
+    var navigationSelects = document.querySelectorAll(".adver-box");
+    function initSelect(elem) {
+        var selectHolder = elem.querySelector(".adver-holder");
+        var selectOptions = elem.querySelectorAll(".adver-dropdownOption li");
+        var dropHolder = elem.querySelector(".adver-dropdown");
+        var selectedOption = selectOptions[0];
+        selectedOption.classList.add("current");
+        selectHolder.addEventListener("click", (function() {
+            dropHolder.classList.toggle("activere");
+        }));
+        selectOptions.forEach((function(currentElement) {
+            currentElement.addEventListener("click", (function() {
+                selectedOption.classList.remove("current");
+                selectedOption = currentElement;
+                currentElement.classList.add("current");
+                selectHolder.innerText = currentElement.textContent;
+                dropHolder.classList.toggle("activere");
+            }));
+        }));
+    }
+    navigationSelects.forEach((function(elem) {
+        initSelect(elem);
+    }));
+    document.addEventListener("DOMContentLoaded", (function() {
+        var addButton = document.getElementById("addButton");
+        var popup = document.getElementById("popupfor");
+        var closeButton = popup.querySelector("[data-close]");
+        var overlay = document.querySelector(".popup-overlay");
+        function addErrorClassToEmptyInputs(form) {
+            var inputs = form.querySelectorAll(".adver-inputform");
+            var isEmpty = false;
+            inputs.forEach((function(input) {
+                if ("" === input.value) {
+                    isEmpty = true;
+                    input.classList.add("adver-input-pp-error");
+                } else input.classList.remove("adver-input-pp-error");
+            }));
+            if (isEmpty) form.classList.add("adver__form-error"); else form.classList.remove("adver__form-error");
+        }
+        function areFormsFilled() {
+            var forms = document.querySelectorAll(".adver__form");
+            for (var i = 0; i < forms.length; i++) {
+                var inputs = forms[i].querySelectorAll(".adver-inputform");
+                for (var j = 0; j < inputs.length; j++) if ("" === inputs[j].value) return false;
+            }
+            return true;
+        }
+        function openPopup() {
+            overlay.style.display = "block";
+            popup.style.display = "block";
+            setTimeout((function() {
+                popup.style.opacity = 1;
+            }), 10);
+            document.body.classList.add("popup-open");
+        }
+        function closePopup() {
+            overlay.style.display = "none";
+            popup.style.opacity = 0;
+            setTimeout((function() {
+                popup.style.display = "none";
+            }), 300);
+            document.body.classList.remove("popup-open");
+        }
+        addButton.addEventListener("click", (function() {
+            var forms = document.querySelectorAll(".adver__form");
+            var isAnyFormIncomplete = false;
+            forms.forEach((function(form) {
+                addErrorClassToEmptyInputs(form);
+                if (!areFormsFilled()) isAnyFormIncomplete = true;
+            }));
+            if (isAnyFormIncomplete) {
+                console.log("Заполните все три формы перед добавлением.");
+                return;
+            }
+            openPopup();
+            console.log("Данные добавлены!");
+        }));
+        closeButton.addEventListener("click", (function() {
+            closePopup();
+        }));
+    }));
+    let videoBtn = document.querySelector(".js-video-btn");
+    video = document.querySelector(".js-video");
+    videoBtn.onclick = function() {
+        video.play();
+        this.classList.add("hide");
+    };
+    video.onclick = function() {
+        if (this.paused) this.play(); else this.pause();
+    };
 })();
